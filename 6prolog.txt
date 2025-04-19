@@ -1,0 +1,41 @@
+% Facts: Symptoms and their relationship to COVID-19
+symptom(fever).
+symptom(cough).
+symptom(fatigue).
+symptom(shortness_of_breath).
+symptom(sore_throat).
+symptom(headache).
+symptom(migraine).
+
+% Rules: If a person has certain symptoms, they might have COVID-19
+has_covid(Person) :-
+    has_symptom(Person, fever),
+    has_symptom(Person, cough),
+    has_symptom(Person, shortness_of_breath),
+    write(Person), write(' might have COVID-19 due to fever, cough, and shortness of breath.'), nl.
+has_covid(Person) :-
+    has_symptom(Person, fever),
+    has_symptom(Person, cough),
+    has_symptom(Person, fatigue),
+    write(Person), write(' might have COVID-19 due to fever, cough, and fatigue.'), nl.
+has_covid(Person) :-
+    has_symptom(Person, fever),
+    has_symptom(Person, sore_throat),
+    has_symptom(Person, headache),
+    write(Person), write(' might have COVID-19 due to fever, sore throat, and headache.'), nl.
+
+% Facts: Example symptoms of people
+has_symptom(krisha, fever).
+has_symptom(krisha, shortness_of_breath).
+has_symptom(krisha, cough).
+has_symptom(vaidehi, fever).
+has_symptom(vaidehi, sore_throat).
+has_symptom(vaidehi, fatigue).
+
+% Sample Query 1
+% ?- has_covid(krisha).
+% Output: krisha might have COVID-19 due to fever, cough, and shortness of breath.
+
+% Sample Query 2
+% ?- has_covid(vaidehi).
+% Output: False

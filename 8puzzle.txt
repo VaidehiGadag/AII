@@ -1,0 +1,138 @@
+import heapq
+import networkx as nx
+import matplotlib.pyplot as plt
+
+# Define the goal state for the 8-puzzle
+goal_state = ((1, 2, 3), (4, 5, 6), (7, 8, 0))  # 0 is the blank space
+
+# Define the possible moves for the blank space: up, down, left, right
+moves = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+
+# Heuristic: Manhattan distance
+def manhattan_distance(state):
+    distance = 0
+    for i in range(3):
+        for j in range(3):
+            value = state[i][j]
+            if value != 0:  # Ignore the blank space
+                goal_i, goal_j = divmod(value - 1, 3)
+                distance += abs(goal_i - i) + abs(goal_j - j)
+    return distance
+
+# A* Algorithm for 8-puzzle
+def a_star_8_puzzle(start_state):
+    open_set = []  # Priority queue
+    heapq.heappush(open_set, (0 + manhattan_distance(start_state), 0, start_state, None))
+    g_score = {start_state: 0}
+    came_from = {}
+    state_graph = nx.DiGraph()  # Directed graph for state space diagram
+
+    while open_set:
+        _, g, current_state, prev_state = heapq.heappop(open_set)
+
+        if current_state == goal_state:
+            # Reconstruct the path (from goal to start)
+            path = []
+            while current_state:
+                path.append(current_state)
+                current_state = came_from.get(current_state)
+            path.reverse()
+            return path, state_graph
+
+        # Get the position of the blank space (0)
+        blank_pos = [(i, j) for i in range(3) for j in range(3) if current_state[i][j] == 0][0]
+        x, y = blank_pos
+
+        # Generate possible new states
+        for dx, dy in moves:
+            new_x, new_y = x + dx, y + dy
+            if 0 <= new_x < 3 and 0 <= new_y < 3:
+                # Swap the blank space with the neighboring tile
+                new_state = [list(row) for row in current_state]
+                new_state[x][y], new_state[new_x][new_y] = new_state[new_x][new_y], new_state[x][y]
+                new_state = tuple(tuple(row) for row in new_state)  # Convert to tuple to be hashable
+
+                tentative_g_score = g + 1  # Each move has a cost of 1
+                if new_state not in g_score or tentative_g_score < g_score[new_state]:
+                    g_score[new_state] = tentative_g_score
+                    f_score = tentative_g_score + manhattan_distance(new_state)
+                    heapq.heappush(open_set, (f_score, tentative_g_score, new_state, current_state))
+                    came_from[new_state] = current_state
+
+                    # Add the edge to the state space graph
+                    state_graph.add_edge(current_state, new_state)
+
+    return None, state_graph  # No path found
+
+# Example of starting state
+start_state = ((0, 2, 3), (1, 5, 6), (4, 7, 8))
+
+# Run A* algorithm for the 8-puzzle and get the solution path
+path, state_graph = a_star_8_puzzle(start_state)
+
+# Print solution path
+if path:
+    print("Solution path:")
+    for state in path:
+        for row in state:
+            print(row)
+        print()
+else:
+    print("No solution found.")
+
+# Visualize the state space diagram
+def draw_state_space(state_graph, start_state, goal_state, path):
+    pos = nx.spring_layout(state_graph, seed=42, k=1.5, iterations=50)
+
+    start_pos = pos[start_state]
+    goal_pos = pos[goal_state]
+
+    # Set the colors for the nodes
+    node_colors = []
+    for node in state_graph.nodes:
+        if node == start_state:
+            node_colors.append('lightblue')  # Start
+        elif node == goal_state:
+            node_colors.append('lightgreen')  # Goal
+        else:
+            node_colors.append('lightcoral')  # Others
+
+    pos[start_state] = (start_pos[0], 1)  # Fix start position
+    pos[goal_state] = (goal_pos[0], -1)  # Fix goal position
+
+    # Add labels for each node
+    labels = {node: "\n".join([str(row) for row in node]) for node in state_graph.nodes}
+
+    # Create a set of edges that are part of the solution path
+    path_edges = set()
+    for i in range(len(path) - 1):
+        path_edges.add((path[i], path[i + 1]))
+
+    # Create a plot of the graph
+    plt.figure(figsize=(20, 20))
+    edge_widths = []
+    edge_colors = []
+
+    for edge in state_graph.edges:
+        if edge in path_edges or (edge[1], edge[0]) in path_edges:
+            edge_widths.append(4)
+            edge_colors.append('lightcoral')
+        else:
+            edge_widths.append(1)
+            edge_colors.append('gray')
+
+    nx.draw(
+        state_graph, pos, with_labels=False, node_size=2000, node_color=node_colors,
+        font_size=8, font_weight='bold', arrows=True, alpha=0.7,
+        width=edge_widths, edge_color=edge_colors
+    )
+
+    nx.draw_networkx_labels(state_graph, pos, labels=labels, font_size=8, font_weight='bold')
+    plt.title("State Space Diagram", fontsize=20, fontweight='bold')
+    plt.show()
+
+# Use the function to draw the state space diagram
+if path:
+    draw_state_space(state_graph, start_state, goal_state, path)
+else:
+    print("No path found.")
